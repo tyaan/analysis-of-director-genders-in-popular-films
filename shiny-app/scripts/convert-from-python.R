@@ -1,6 +1,5 @@
 library(dplyr)
 library(lubridate)
-library(tidyr)
 
 df_films <- read.csv("shiny-app/data/film-dataframe.csv")
 df_directors <- read.csv("shiny-app/data/directors-dataframe.csv")

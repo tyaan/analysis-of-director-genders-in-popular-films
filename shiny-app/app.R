@@ -1,6 +1,7 @@
 library(shiny)
 library(plotly)
 library(dplyr)
+library(tidyr)
 
 df_films = readRDS("data/film-dataframe.rds")
 df_directors = readRDS("data/directors-dataframe.rds")
@@ -18,36 +19,44 @@ no_gender_data_directors = df_directors %>%
   nrow()
 
 ## DATA ALTERATIONS FOR PLOTS
-films_female_directors <- df_films[df_films$has_female_director == TRUE, ]
-films_male_directors <- df_films[df_films$has_male_director == TRUE, ]
-films_nonbinary_directors <- df_films[df_films$has_nonbinary_director == TRUE, ]
-films_expanded_genders <- rbind(transform(films_female_directors, director_gender = "Film has Female Director"),
-                            transform(films_male_directors, director_gender = "Film has Male Director")
-                            #transform(films_nonbinary_directors, director_gender = "Film has Non Binary Director")
+films_expanded_genders <- rbind(transform(df_films[df_films$has_female_director == TRUE, ], director_gender = "Film has Female Director"),
+                            transform(df_films[df_films$has_male_director == TRUE, ], director_gender = "Film has Male Director")
+                            #transform(df_films[df_films$has_nonbinary_director == TRUE, ], director_gender = "Film has Non Binary Director")
 )
-
-View(test)
-View(films_expanded_genders)
 
 director_film_count <- data.frame(Directors = unlist(df_films$Directors), Gender = unlist(df_films$Directors.Genders)) %>%
   group_by(Directors) %>%
   summarize(Num.Films = n(), Gender = first(Gender)) %>%
   arrange(desc(Num.Films))
 
-female_genres <- data.frame(Genres = unlist(films_female_directors$Genres)) %>%
+female_genres <- data.frame(Genres = unlist(df_films[df_films$has_female_director == TRUE, ]$Genres)) %>%
   group_by(Genres) %>%
   summarize(Genre.Count = n()) %>%
-  mutate(Percent = paste0(round(Genre.Count / nrow(films_female_directors) * 100, 2), "%")) %>%
+  mutate(Percent = paste0(round(Genre.Count / nrow(df_films[df_films$has_female_director == TRUE, ]) * 100, 2), "%")) %>%
   arrange(desc(Genre.Count))
 
-male_genres <- data.frame(Genres = unlist(films_male_directors$Genres)) %>%
+male_genres <- data.frame(Genres = unlist(df_films[df_films$has_male_director == TRUE, ]$Genres)) %>%
   group_by(Genres) %>%
   summarize(Genre.Count = n()) %>%
-  mutate(Percent = paste0(round(Genre.Count / nrow(films_male_directors) * 100, 2), "%")) %>%
+  mutate(Percent = paste0(round(Genre.Count / nrow(df_films[df_films$has_male_director == TRUE, ]) * 100, 2), "%")) %>%
   arrange(desc(Genre.Count))
 
 ui <- fluidPage(
   tags$head(
+    tags$script(HTML("
+                      function post_height() {
+                        //console.log('HELLO');
+                        if(document.body.scrollHeight){
+                          var height = document.body.scrollHeight;
+                          console.log(height);
+                          parent.postMessage({height: height}, '*');
+                        }
+                      }
+                      window.addEventListener('resize', post_height);
+                      window.addEventListener('load', post_height);
+                      "
+                     )),
+    
     tags$style(HTML("
                     body {
                       background-color: #EDF0F3;
@@ -80,7 +89,7 @@ ui <- fluidPage(
   ),
   
   # Application title
-  titlePanel("Female vs Male Directors in Popular Films"),
+  titlePanel("Analysis of Director Genders in Popular Films"),
   
   # Sidebar layout
   sidebarLayout(
